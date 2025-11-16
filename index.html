@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🎴 Ases Secretos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a237e, #283593);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 10px;
+            touch-action: manipulation;
+        }
+
+        .container {
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+            padding: 10px;
+        }
+
+        .titulo {
+            font-size: clamp(1.8em, 6vw, 2.5em);
+            margin-bottom: 15px;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            line-height: 1.2;
+        }
+
+        .info-juego {
+            font-size: clamp(1em, 4vw, 1.2em);
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 10px;
+            display: inline-block;
+            backdrop-filter: blur(10px);
+        }
+
+        .tablero {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+
+        .carta {
+            width: 100%;
+            aspect-ratio: 3/4;
+            perspective: 1000px;
+            cursor: pointer;
+            margin: 0 auto;
+            max-width: 80px;
+        }
+
+        .carta-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            border-radius: 8px;
+        }
+
+        .carta.volteada .carta-inner {
+            transform: rotateY(180deg);
+        }
+
+        .carta.encontrada .carta-inner {
+            transform: rotateY(180deg);
+            box-shadow: 0 0 15px gold;
+        }
+
+        .carta-frente, .carta-trasera {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 5px;
+        }
+
+        .carta-frente {
+            background: linear-gradient(45deg, #dc143c, #ff6b6b);
+            border: 2px solid white;
+            transform: rotateY(180deg);
+        }
+
+        .carta-trasera {
+            background: linear-gradient(45deg, #1e88e5, #64b5f6);
+            border: 2px solid #ffd700;
+        }
+
+        .carta.encontrada .carta-frente {
+            border-color: gold;
+            box-shadow: 0 0 10px gold;
+        }
+
+        .simbolo-ase {
+            font-size: clamp(1.5em, 8vw, 2em);
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .simbolo-pequeno {
+            font-size: clamp(0.8em, 4vw, 1em);
+            position: absolute;
+        }
+
+        .simbolo-arriba-izq {
+            top: 3px;
+            left: 5px;
+        }
+
+        .simbolo-abajo-der {
+            bottom: 3px;
+            right: 5px;
+        }
+
+        .patron-reverso {
+            width: 80%;
+            height: 80%;
+            border: 1px solid white;
+            border-radius: 3px;
+            background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.3) 50%, transparent 60%);
+        }
+
+        .controles {
+            margin: 15px 0;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #1a237e;
+            border: none;
+            padding: 12px 20px;
+            font-size: clamp(0.9em, 4vw, 1em);
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            min-width: 120px;
+            touch-action: manipulation;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s;
+            padding: 20px;
+        }
+
+        .modal-contenido {
+            background: linear-gradient(135deg, #8B0000, #DC143C);
+            padding: 25px 20px;
+            border-radius: 15px;
+            border: 3px solid gold;
+            max-width: 90%;
+            width: 400px;
+            text-align: center;
+            animation: scaleIn 0.3s;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .mensaje-secreto {
+            font-size: clamp(0.9em, 3.5vw, 1em);
+            line-height: 1.6;
+            margin: 15px 0;
+            color: white;
+            text-align: left;
+        }
+
+        .mensaje-secreto p {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .mensaje-secreto .corazon {
+            color: #ffd700;
+            font-size: 1.2em;
+        }
+
+        .mensaje-secreto .pregunta-final {
+            text-align: center;
+            font-size: 1.3em;
+            color: #ffd700;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            border: 2px solid gold;
+        }
+
+        .titulo-mensaje {
+            font-size: clamp(1.5em, 6vw, 1.8em);
+            color: gold;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .confetti {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            background: gold;
+            opacity: 0;
+            animation: confetti-fall 2s linear forwards;
+            pointer-events: none;
+        }
+
+        .corazon-flotante {
+            position: fixed;
+            font-size: 20px;
+            opacity: 0;
+            animation: corazon-flotar 3s ease-in forwards;
+            pointer-events: none;
+            z-index: 1001;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes corazon-flotar {
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 1;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        /* Estados de carga */
+        .cargando {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        /* Mejoras de accesibilidad */
+        @media (prefers-reduced-motion: reduce) {
+            .carta-inner {
+                transition: none;
+            }
+            .confetti, .corazon-flotante {
+                display: none;
+            }
+        }
+
+        /* Orientación landscape */
+        @media (max-height: 600px) and (orientation: landscape) {
+            .container {
+                padding: 5px;
+            }
+            .tablero {
+                gap: 5px;
+                margin: 10px auto;
+            }
+            .carta {
+                max-width: 60px;
+            }
+            .info-juego {
+                margin-bottom: 10px;
+                padding: 8px;
+            }
+            .modal-contenido {
+                padding: 15px 12px;
+            }
+        }
+
+        /* Tablets y pantallas más grandes */
+        @media (min-width: 768px) {
+            .tablero {
+                gap: 12px;
+            }
+            .carta {
+                max-width: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="titulo">🎴 Ases Secretos</h1>
+        
+        <div class="info-juego">
+            <div id="contador-intentos">Intentos: 0</div>
+            <div id="contador-pares">Pares: 0/8</div>
+        </div>
+
+        <div class="controles">
+            <button onclick="iniciarJuego()">🔄 Reiniciar</button>
+            <button onclick="mostrarInstrucciones()">📖 Ayuda</button>
+        </div>
+
+        <div class="tablero" id="tablero">
+            <!-- Las cartas se generarán con JavaScript -->
+        </div>
+    </div>
+
+    <!-- Modal mensaje secreto -->
+    <div class="modal" id="modalMensaje">
+        <div class="modal-contenido">
+            <h2 class="titulo-mensaje">💖 Para Ti 💖</h2>
+            <div class="mensaje-secreto" id="mensajeSecreto">
+                <!-- Mensaje especial se insertará aquí -->
+            </div>
+            <button onclick="cerrarModal()" style="background: linear-gradient(45deg, #ffd700, #ffffff); margin-top: 15px;">💝 Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal instrucciones -->
+    <div class="modal" id="modalInstrucciones">
+        <div class="modal-contenido">
+            <h2 class="titulo-mensaje">📖 Cómo Jugar</h2>
+            <div class="mensaje-secreto">
+                <p><strong>🎯 Objetivo:</strong> Encuentra todos los pares de ases</p>
+                <p><strong>👆 Cómo jugar:</strong></p>
+                <ul style="text-align: left; margin: 10px 0; padding-left: 20px;">
+                    <li>Toca las cartas para voltearlas</li>
+                    <li>Encuentra dos cartas iguales</li>
+                    <li>Los pares se quedan descubiertos</li>
+                    <li>¡Encuentra todos los pares para ganar!</li>
+                </ul>
+                <p><strong>💡 Consejo:</strong> Memoriza las posiciones</p>
+            </div>
+            <button onclick="cerrarInstrucciones()">¡A jugar!</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuración del juego
+        const totalPares = 8;
+        let cartas = [];
+        let cartasVolteadas = [];
+        let paresEncontrados = 0;
+        let intentos = 0;
+        let bloqueado = false;
+        let sonidosCargados = false;
+
+        // Símbolos para los ases
+        const simbolosAces = [
+            { simbolo: '♠', color: '#000000' },
+            { simbolo: '♥', color: '#dc143c' },
+            { simbolo: '♦', color: '#1e88e5' },
+            { simbolo: '♣', color: '#2e7d32' },
+            { simbolo: '★', color: '#ffd700' },
+            { simbolo: '☆', color: '#ffffff' },
+            { simbolo: '⚡', color: '#ffeb3b' },
+            { simbolo: '◆', color: '#e91e63' }
+        ];
+
+        // Sistema de sonidos
+        const sonidos = {
+            voltear: new Audio(),
+            match: new Audio(),
+            win: new Audio()
+        };
+
+        // Cargar sonidos - CORREGIDO PARA MP3
+        function cargarSonidos() {
+            const sonidosACargar = [
+                { audio: sonidos.voltear, src: 'flip.mp3' },    // ← .mp3
+                { audio: sonidos.match, src: 'match.mp3' },     // ← .mp3
+                { audio: sonidos.win, src: 'win.mp3' }          // ← .mp3
+            ];
+
+            let cargados = 0;
+            
+            sonidosACargar.forEach(({ audio, src }) => {
+                audio.src = src;
+                audio.preload = 'auto';
+                audio.load();
+                
+                audio.addEventListener('canplaythrough', () => {
+                    cargados++;
+                    if (cargados === sonidosACargar.length) {
+                        sonidosCargados = true;
+                        console.log('Todos los sonidos cargados');
+                    }
+                });
+                
+                audio.addEventListener('error', (e) => {
+                    console.warn('Error cargando sonido:', src, e);
+                    cargados++;
+                });
+            });
+        }
+
+        // Inicializar juego
+        function iniciarJuego() {
+            const tablero = document.getElementById('tablero');
+            tablero.innerHTML = '';
+            cartas = [];
+            cartasVolteadas = [];
+            paresEncontrados = 0;
+            intentos = 0;
+            bloqueado = false;
+            
+            actualizarContadores();
+            
+            // Crear y mezclar cartas
+            let tiposCartas = [];
+            for (let i = 0; i < totalPares; i++) {
+                tiposCartas.push(i, i);
+            }
+            tiposCartas = mezclarArray(tiposCartas);
+            
+            // Crear cartas en el tablero
+            tiposCartas.forEach((tipo, index) => {
+                const carta = crearCarta(tipo, index);
+                cartas.push(carta);
+                tablero.appendChild(carta.elemento);
+            });
+        }
+
+        function crearCarta(tipo, id) {
+            const cartaDiv = document.createElement('div');
+            cartaDiv.className = 'carta';
+            cartaDiv.innerHTML = `
+                <div class="carta-inner">
+                    <div class="carta-frente">
+                        <div class="simbolo-ase" style="color: ${simbolosAces[tipo].color}">A</div>
+                        <div class="simbolo-pequeno simbolo-arriba-izq" style="color: ${simbolosAces[tipo].color}">
+                            ${simbolosAces[tipo].simbolo}
+                        </div>
+                        <div class="simbolo-pequeno simbolo-abajo-der" style="color: ${simbolosAces[tipo].color}">
+                            ${simbolosAces[tipo].simbolo}
+                        </div>
+                    </div>
+                    <div class="carta-trasera">
+                        <div class="patron-reverso"></div>
+                    </div>
+                </div>
+            `;
+            
+            const carta = {
+                elemento: cartaDiv,
+                tipo: tipo,
+                volteada: false,
+                encontrada: false,
+                id: id
+            };
+            
+            // Evento touch/click optimizado para móviles
+            cartaDiv.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                manejarClickCarta(carta);
+            });
+            
+            return carta;
+        }
+
+        function manejarClickCarta(carta) {
+            if (bloqueado || carta.volteada || carta.encontrada) return;
+            
+            voltearCarta(carta);
+            
+            if (cartasVolteadas.length === 2) {
+                bloqueado = true;
+                intentos++;
+                actualizarContadores();
+                
+                const [carta1, carta2] = cartasVolteadas;
+                
+                if (carta1.tipo === carta2.tipo) {
+                    // Par encontrado
+                    setTimeout(() => {
+                        carta1.encontrada = true;
+                        carta2.encontrada = true;
+                        carta1.elemento.classList.add('encontrada');
+                        carta2.elemento.classList.add('encontrada');
+                        cartasVolteadas = [];
+                        bloqueado = false;
+                        paresEncontrados++;
+                        actualizarContadores();
+                        
+                        reproducirSonido('match');
+                        
+                        if (paresEncontrados === totalPares) {
+                            setTimeout(mostrarMensajeSecreto, 600);
+                        }
+                    }, 400);
+                } else {
+                    // No son par
+                    setTimeout(() => {
+                        voltearCarta(carta1);
+                        voltearCarta(carta2);
+                        cartasVolteadas = [];
+                        bloqueado = false;
+                    }, 800);
+                }
+            }
+        }
+
+        function voltearCarta(carta) {
+            carta.volteada = !carta.volteada;
+            carta.elemento.classList.toggle('volteada', carta.volteada);
+            
+            if (carta.volteada) {
+                cartasVolteadas.push(carta);
+                reproducirSonido('voltear');
+            } else {
+                cartasVolteadas = cartasVolteadas.filter(c => c.id !== carta.id);
+            }
+        }
+
+        function reproducirSonido(tipo) {
+            if (sonidosCargados) {
+                sonidos[tipo].currentTime = 0;
+                sonidos[tipo].play().catch(e => {
+                    console.log('Error reproduciendo sonido:', e);
+                });
+            }
+        }
+
+        function actualizarContadores() {
+            document.getElementById('contador-intentos').textContent = `Intentos: ${intentos}`;
+            document.getElementById('contador-pares').textContent = `Pares: ${paresEncontrados}/${totalPares}`;
+        }
+
+        function mostrarMensajeSecreto() {
+            reproducirSonido('win');
+            crearConfeti();
+            crearCorazones();
+            
+            const mensajeEspecial = `
+                <p>El sol brilla y el viento sopla suavemente, pero nada se compara con lo que tú eres: una melodía hermosa capaz de asombrar al corazón. <span class="corazon">💖</span></p>
+                
+                <p>Hay en ti algo que roza la magia, como si fueras una doncella salida de un cuento, una mujer que sin buscarlo ganó el corazón de un caballero. <span class="corazon">✨</span></p>
+                
+                <p>Y mientras escribo estas palabras, una pregunta nace desde lo más profundo de mí, porque eres importante, porque contigo quiero seguir creando emocionantes páginas de una historia maravillosa. <span class="corazon">📖</span></p>
+                
+                <p>No buscaba nada y te encontré. Llegaste como un suspiro inesperado. Como una luz donde no había nada. Me cambiaste sin aviso. Y ahora mi mundo se complementa contigo. <span class="corazon">🌟</span></p>
+                
+                <p>Y con todo esto en el corazón, solo me queda hacer una pregunta final.</p>
+                
+                <div class="pregunta-final">
+                    Do you want to be my girl? <span class="corazon">💕</span>
+                </div>
+            `;
+            
+            document.getElementById('mensajeSecreto').innerHTML = mensajeEspecial;
+            document.getElementById('modalMensaje').style.display = 'flex';
+        }
+
+        function crearConfeti() {
+            const colores = ['#ffd700', '#dc143c', '#1e88e5', '#2e7d32', '#e91e63', '#ff9800'];
+            
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.background = colores[Math.floor(Math.random() * colores.length)];
+                    confetti.style.animationDelay = Math.random() * 1 + 's';
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => confetti.remove(), 2000);
+                }, i * 30);
+            }
+        }
+
+        function crearCorazones() {
+            const corazones = ['💖', '💕', '💝', '💘', '💗', '💓'];
+            
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const corazon = document.createElement('div');
+                    corazon.className = 'corazon-flotante';
+                    corazon.textContent = corazones[Math.floor(Math.random() * corazones.length)];
+                    corazon.style.left = Math.random() * 100 + 'vw';
+                    corazon.style.fontSize = (Math.random() * 20 + 15) + 'px';
+                    corazon.style.animationDelay = Math.random() * 2 + 's';
+                    document.body.appendChild(corazon);
+                    
+                    setTimeout(() => corazon.remove(), 3000);
+                }, i * 150);
+            }
+        }
+
+        function mostrarInstrucciones() {
+            document.getElementById('modalInstrucciones').style.display = 'flex';
+        }
+
+        function cerrarModal() {
+            document.getElementById('modalMensaje').style.display = 'none';
+        }
+
+        function cerrarInstrucciones() {
+            document.getElementById('modalInstrucciones').style.display = 'none';
+        }
+
+        function mezclarArray(array) {
+            const nuevoArray = [...array];
+            for (let i = nuevoArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [nuevoArray[i], nuevoArray[j]] = [nuevoArray[j], nuevoArray[i]];
+            }
+            return nuevoArray;
+        }
+
+        // Inicializar cuando la página cargue
+        window.addEventListener('load', () => {
+            cargarSonidos();
+            iniciarJuego();
+        });
+
+        // Prevenir zoom en doble tap
+        document.addEventListener('touchend', (e) => {
+            if (e.touches && e.touches.length > 1) return;
+            e.preventDefault();
+        }, { passive: false });
+    </script>
+</body>
+</html>
