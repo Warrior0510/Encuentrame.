@@ -64,6 +64,9 @@
             cursor: pointer;
             margin: 0 auto;
             max-width: 80px;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
         }
 
         .carta-inner {
@@ -95,6 +98,9 @@
             justify-content: center;
             align-items: center;
             padding: 5px;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
         }
 
         .carta-frente {
@@ -162,6 +168,9 @@
             transition: all 0.3s;
             min-width: 120px;
             touch-action: manipulation;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
         }
 
         button:active {
@@ -417,9 +426,9 @@
         // Cargar sonidos - CORREGIDO PARA MP3
         function cargarSonidos() {
             const sonidosACargar = [
-                { audio: sonidos.voltear, src: 'flip.mp3' },    // ← .mp3
-                { audio: sonidos.match, src: 'match.mp3' },     // ← .mp3
-                { audio: sonidos.win, src: 'win.mp3' }          // ← .mp3
+                { audio: sonidos.voltear, src: 'flip.mp3' },
+                { audio: sonidos.match, src: 'match.mp3' },
+                { audio: sonidos.win, src: 'win.mp3' }
             ];
 
             let cargados = 0;
@@ -499,12 +508,21 @@
                 id: id
             };
             
-            // Evento touch/click optimizado para móviles
-            cartaDiv.addEventListener('click', (e) => {
+            // EVENTOS CORREGIDOS PARA MÓVILES
+            function manejarTouch(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                manejarClickCarta(carta);
-            });
+                if (!bloqueado && !carta.volteada && !carta.encontrada) {
+                    manejarClickCarta(carta);
+                }
+            }
+            
+            // Agregar múltiples eventos para compatibilidad
+            cartaDiv.addEventListener('click', manejarTouch);
+            cartaDiv.addEventListener('touchstart', manejarTouch, { passive: false });
+            cartaDiv.addEventListener('touchend', function(e) {
+                e.preventDefault();
+            }, { passive: false });
             
             return carta;
         }
@@ -662,13 +680,29 @@
         window.addEventListener('load', () => {
             cargarSonidos();
             iniciarJuego();
+            
+            // Prevenir comportamientos no deseados en móviles
+            document.addEventListener('touchmove', function(e) {
+                if (e.scale !== 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            document.addEventListener('gesturestart', function(e) {
+                e.preventDefault();
+            });
         });
 
         // Prevenir zoom en doble tap
-        document.addEventListener('touchend', (e) => {
-            if (e.touches && e.touches.length > 1) return;
+        document.addEventListener('touchend', function(e) {
             e.preventDefault();
         }, { passive: false });
+
+        // Prevenir menú contextual en móviles
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
     </script>
 </body>
 </html>
